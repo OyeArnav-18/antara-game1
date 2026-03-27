@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://u2yuq4ta4rvb"]
 
 [ext_resource type="Script" uid="uid://cwmomdn6k50p3" path="res://player.gd" id="1_0xm2m"]
+[ext_resource type="Script" uid="uid://dwqi8jic7f03c" path="res://main.gd" id="1_h2yge"]
 [ext_resource type="Texture2D" uid="uid://c2lmsii77uf3j" path="res://icon.svg" id="2_h2yge"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0xm2m"]
@@ -16,6 +17,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_h2yge")
 
 [node name="Layout" type="VBoxContainer" parent="." unique_id=429326674]
 layout_mode = 0
@@ -35,6 +37,7 @@ layout_mode = 2
 text = "Boss HP: 100"
 
 [node name="AIPanel" type="VBoxContainer" parent="Layout" unique_id=93450759]
+visible = false
 layout_mode = 2
 
 [node name="Behaviour Label" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
@@ -56,7 +59,7 @@ scale = Vector2(0.2, 0.2)
 texture = ExtResource("2_h2yge")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1244071555]
-position = Vector2(195, 169)
+position = Vector2(215, 85)
 shape = SubResource("RectangleShape2D_0xm2m")
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=969229045]
@@ -72,3 +75,5 @@ offset_top = 62.0
 offset_right = 366.0
 offset_bottom = 85.0
 text = "..."
+
+[node name="HTTPRequest" type="HTTPRequest" parent="." unique_id=1540569754]
