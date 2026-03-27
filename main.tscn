@@ -37,12 +37,12 @@ text = "Boss HP: 100"
 [node name="AIPanel" type="VBoxContainer" parent="Layout" unique_id=93450759]
 layout_mode = 2
 
-[node name="Behaviour Label" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
+[node name="BehaviorLabel" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
 layout_mode = 2
 text = "Behavior Observed:
 ..."
 
-[node name="Realm Label" type="Label" parent="Layout/AIPanel" unique_id=1963355134]
+[node name="ResponseLabel" type="Label" parent="Layout/AIPanel" unique_id=1963355134]
 layout_mode = 2
 text = "Realm Response:
 ..."
