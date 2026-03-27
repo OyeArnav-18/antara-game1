@@ -15,6 +15,10 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 11.0
+offset_right = 8.0
+offset_bottom = 11.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_h2yge")
@@ -37,15 +41,14 @@ layout_mode = 2
 text = "Boss HP: 100"
 
 [node name="AIPanel" type="VBoxContainer" parent="Layout" unique_id=93450759]
-visible = false
 layout_mode = 2
 
-[node name="Behaviour Label" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
+[node name="BehaviorLabel" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
 layout_mode = 2
 text = "Behavior Observed:
 ..."
 
-[node name="Realm Label" type="Label" parent="Layout/AIPanel" unique_id=1963355134]
+[node name="ResponseLabel" type="Label" parent="Layout/AIPanel" unique_id=1963355134]
 layout_mode = 2
 text = "Realm Response:
 ..."
@@ -70,10 +73,10 @@ shape = SubResource("RectangleShape2D_h2yge")
 
 [node name="ActionLabel" type="Label" parent="." unique_id=20746433]
 layout_mode = 0
-offset_left = 352.0
-offset_top = 62.0
-offset_right = 366.0
-offset_bottom = 85.0
+offset_left = 631.0
+offset_top = 69.0
+offset_right = 645.0
+offset_bottom = 92.0
 text = "..."
 
 [node name="HTTPRequest" type="HTTPRequest" parent="." unique_id=1540569754]
