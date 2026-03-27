@@ -1,5 +1,14 @@
 [gd_scene format=3 uid="uid://u2yuq4ta4rvb"]
 
+[ext_resource type="Script" uid="uid://cwmomdn6k50p3" path="res://player.gd" id="1_0xm2m"]
+[ext_resource type="Texture2D" uid="uid://c2lmsii77uf3j" path="res://icon.svg" id="2_h2yge"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0xm2m"]
+size = Vector2(26, 26)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h2yge"]
+size = Vector2(685, 39)
+
 [node name="Main" type="Control" unique_id=1045685342]
 layout_mode = 3
 anchors_preset = 15
@@ -7,3 +16,59 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="Layout" type="VBoxContainer" parent="." unique_id=429326674]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TopBar" type="HBoxContainer" parent="Layout" unique_id=1307833024]
+layout_mode = 2
+theme_override_constants/separation = 400
+
+[node name="Label 1" type="Label" parent="Layout/TopBar" unique_id=1493049395]
+layout_mode = 2
+text = "Player HP: 100"
+
+[node name="Label 2" type="Label" parent="Layout/TopBar" unique_id=1075222152]
+layout_mode = 2
+text = "Boss HP: 100"
+
+[node name="AIPanel" type="VBoxContainer" parent="Layout" unique_id=93450759]
+layout_mode = 2
+
+[node name="Behaviour Label" type="Label" parent="Layout/AIPanel" unique_id=1389955718]
+layout_mode = 2
+text = "Behavior Observed:
+..."
+
+[node name="Realm Label" type="Label" parent="Layout/AIPanel" unique_id=1963355134]
+layout_mode = 2
+text = "Realm Response:
+..."
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=558095455]
+script = ExtResource("1_0xm2m")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=141643797]
+position = Vector2(195, 169)
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("2_h2yge")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1244071555]
+position = Vector2(195, 169)
+shape = SubResource("RectangleShape2D_0xm2m")
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=969229045]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1839233817]
+position = Vector2(348.5, 226)
+shape = SubResource("RectangleShape2D_h2yge")
+
+[node name="ActionLabel" type="Label" parent="." unique_id=20746433]
+layout_mode = 0
+offset_left = 352.0
+offset_top = 62.0
+offset_right = 366.0
+offset_bottom = 85.0
+text = "..."
