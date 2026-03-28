@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cwmomdn6k50p3" path="res://player.gd" id="1_0xm2m"]
 [ext_resource type="Script" uid="uid://dwqi8jic7f03c" path="res://main.gd" id="1_h2yge"]
+[ext_resource type="Texture2D" uid="uid://bsjh6xefu3qvv" path="res://Screenshot 2026-03-28 152213.png" id="2_272bh"]
 [ext_resource type="Texture2D" uid="uid://ch2i0l17qctk5" path="res://Character-Attack-1.png" id="3_7mycd"]
 [ext_resource type="Script" uid="uid://cy40odn2spunb" path="res://boss.gd" id="4_1bvp3"]
 [ext_resource type="Texture2D" uid="uid://dc0wla6juu1tl" path="res://Necromancer_creativekind-Sheet.png" id="4_lquwl"]
@@ -15,22 +16,33 @@ size = Vector2(1423, 39)
 
 [node name="Main" type="Control" unique_id=1045685342]
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_right = 0.9990001
+anchor_bottom = 0.998
 offset_left = 8.0
 offset_top = 11.0
-offset_right = 8.0
-offset_bottom = 11.0
+offset_right = 80.01318
+offset_bottom = 0.29595947
 grow_horizontal = 2
 grow_vertical = 2
+scale = Vector2(0.93469316, 1)
 script = ExtResource("1_h2yge")
 
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1846769763]
+layout_mode = 0
+offset_left = -10.698697
+offset_top = -10.0
+offset_right = 1175.675
+offset_bottom = 640.0
+scale = Vector2(1.0433806, 1)
+texture = ExtResource("2_272bh")
+
 [node name="Player" type="CharacterBody2D" parent="." unique_id=558095455]
+position = Vector2(84.519714, 91)
 script = ExtResource("1_0xm2m")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=141643797]
-position = Vector2(193, 187)
+position = Vector2(231.09187, 153)
+scale = Vector2(1.5954863, 1.546875)
 texture = ExtResource("3_7mycd")
 hframes = 10
 
@@ -42,7 +54,7 @@ shape = SubResource("RectangleShape2D_0xm2m")
 position = Vector2(-1, 9)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1839233817]
-position = Vector2(704, 291)
+position = Vector2(671.80835, 422)
 shape = SubResource("RectangleShape2D_h2yge")
 
 [node name="ActionLabel" type="Label" parent="." unique_id=20746433]
@@ -56,7 +68,7 @@ text = "..."
 [node name="HTTPRequest" type="HTTPRequest" parent="." unique_id=1540569754]
 
 [node name="Boss" type="Sprite2D" parent="." unique_id=1336209796]
-position = Vector2(468, 214)
+position = Vector2(744.6294, 283)
 scale = Vector2(3, 3)
 texture = ExtResource("4_lquwl")
 hframes = 17
@@ -95,6 +107,10 @@ text = "Behavior Observed:
 layout_mode = 2
 text = "Realm Response:
 ..."
+
+[node name="StartButton" type="Button" parent="CanvasLayer" unique_id=1215208081]
+offset_right = 8.0
+offset_bottom = 8.0
 
 [node name="HTTPRequest2" type="HTTPRequest" parent="." unique_id=1250729276]
 
