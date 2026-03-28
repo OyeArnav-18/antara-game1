@@ -8,12 +8,24 @@
 
 config_version=5
 
+[accessibility]
+
+general/size/mode=3
+general/size/viewport_height=648
+general/size/viewport_width=1168
+
 [application]
 
 config/name="Antara"
 run/main_scene="uid://u2yuq4ta4rvb"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/vsync/vsync_mode=2
 
 [input]
 

@@ -37,8 +37,9 @@ func _ready():
 	print("ANTARA Brain Initialized.")
 	
 	# --- AAA UI UPGRADE ---
+	# --- AAA UI UPGRADE & WRAPPING ---
 	var text_style = LabelSettings.new()
-	text_style.font_size = 22
+	text_style.font_size = 18 # (Change this number if it's still too big!)
 	text_style.font_color = Color(1.0, 0.9, 0.8) 
 	text_style.outline_size = 6
 	text_style.outline_color = Color.BLACK
@@ -46,14 +47,20 @@ func _ready():
 	text_style.shadow_size = 5
 	text_style.shadow_offset = Vector2(2, 2)
 	
+	# 1. Apply the epic red glowing style
 	if player_hp_label: player_hp_label.label_settings = text_style
 	if boss_hp_label: boss_hp_label.label_settings = text_style
 	if behavior_label: behavior_label.label_settings = text_style
 	if response_label: response_label.label_settings = text_style
 	
+	# 2. Force the long AI dialogue to wrap cleanly
+	if behavior_label: behavior_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if response_label: response_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	# 3. Dark cinematic backgrounds
 	if has_node("CanvasLayer/Layout/AIPanel"): $"CanvasLayer/Layout/AIPanel".self_modulate = Color(0.0, 0.0, 0.0, 0.6)
 	if has_node("CanvasLayer/Layout/TopBar"): $"CanvasLayer/Layout/TopBar".self_modulate = Color(0.0, 0.0, 0.0, 0.6)
-
+	
 # --- BRIGHT DATA API LOGIC ---
 func fetch_real_weather():
 	var url = "dfe6b11c-2fd9-4d68-b430-fc936fe72886" 
