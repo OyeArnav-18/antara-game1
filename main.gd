@@ -6,9 +6,12 @@ extends Control
 @onready var http_request = $HTTPRequest
 @onready var player_hp_label = $"CanvasLayer/Layout/TopBar/Label 1"
 @onready var boss_hp_label = $"CanvasLayer/Layout/TopBar/Label 2"
+@onready var bright_data_http = $BrightDataHTTP
 
 # --- GAME STATE & STATS ---
 var api_key = "rc_f090ac3c4919ffd991d20691f74edc7e29f97c6429041f51d98e77572e910138" 
+var bd_api_key = "dfe6b11c-2fd9-4d68-b430-fc936fe72886"
+var live_weather = "Heavy Rain and Thunder" # Fallback weather
 var player_history = []
 var player_hp = 200
 var player_max_hp = 200
@@ -23,11 +26,51 @@ var is_evolving = false
 var is_fetching_ai = false
 
 func _ready():
-	if not http_request: return
-	http_request.request_completed.connect(_on_ai_response)
+	if http_request: http_request.request_completed.connect(_on_ai_response)
+	
+	if bright_data_http:
+		bright_data_http.request_completed.connect(_on_bright_data_response)
+		fetch_real_weather() 
+		
 	self.self_modulate = Color(0.2, 0.2, 0.2)
 	update_hp_ui() 
 	print("ANTARA Brain Initialized.")
+	
+	# --- AAA UI UPGRADE ---
+	var text_style = LabelSettings.new()
+	text_style.font_size = 22
+	text_style.font_color = Color(1.0, 0.9, 0.8) 
+	text_style.outline_size = 6
+	text_style.outline_color = Color.BLACK
+	text_style.shadow_color = Color(0.8, 0.0, 0.0, 0.8) 
+	text_style.shadow_size = 5
+	text_style.shadow_offset = Vector2(2, 2)
+	
+	if player_hp_label: player_hp_label.label_settings = text_style
+	if boss_hp_label: boss_hp_label.label_settings = text_style
+	if behavior_label: behavior_label.label_settings = text_style
+	if response_label: response_label.label_settings = text_style
+	
+	if has_node("CanvasLayer/Layout/AIPanel"): $"CanvasLayer/Layout/AIPanel".self_modulate = Color(0.0, 0.0, 0.0, 0.6)
+	if has_node("CanvasLayer/Layout/TopBar"): $"CanvasLayer/Layout/TopBar".self_modulate = Color(0.0, 0.0, 0.0, 0.6)
+
+# --- BRIGHT DATA API LOGIC ---
+func fetch_real_weather():
+	var url = "dfe6b11c-2fd9-4d68-b430-fc936fe72886" 
+	var headers = ["Authorization: Bearer " + bd_api_key, "Content-Type: application/json"]
+	bright_data_http.request(url, headers, HTTPClient.METHOD_GET)
+
+func _on_bright_data_response(_result, response_code, _headers, body):
+	if response_code == 200:
+		var raw_response = body.get_string_from_utf8()
+		var json_parser = JSON.new()
+		if json_parser.parse(raw_response) == OK:
+			var data = json_parser.get_data()
+			if data != null and data.has("weather"):
+				live_weather = data["weather"]
+				print("BRIGHT DATA SUCCESS: Weather is now " + live_weather)
+	else:
+		print("BRIGHT DATA OFFLINE: Using fallback weather.")
 
 func _input(event):
 	if game_over and (event.is_action_pressed("light_attack") or event.is_action_pressed("ui_accept")):
@@ -58,11 +101,9 @@ func update_hp_ui():
 	if boss_hp_label: boss_hp_label.text = "Boss HP: " + str(boss_hp)
 
 func damage_boss(amount: int):
-	# HARD LOCK: Cannot damage the boss if it's dead or evolving! Fixes the crash!
 	if game_over or is_evolving or boss_hp <= 0: return 
 	
-	if is_fetching_ai:
-		amount = int(amount * 0.1) 
+	if is_fetching_ai: amount = int(amount * 0.1) 
 		
 	if current_boss_stance == "DEFENSIVE":
 		amount = int(amount * 0.2) 
@@ -136,8 +177,6 @@ func trigger_evolution():
 		evo_tween.tween_property($Boss, "modulate", Color(1.0, 0.5, 0.0), 2.0)
 		
 	var history_string = ", ".join(player_history)
-	
-	# EPIC PHASE 2 PROMPT
 	var evo_prompt = """
 	You are 'The Sentinel', a god-like boss in a dark fantasy game. The player just "killed" your first form.
 	You are evolving into Phase 2 based on their combat history: {history}.
@@ -150,7 +189,7 @@ func trigger_evolution():
 	{{
 		"internal_analysis": "Briefly state how you will counter their specific history.",
 		"counter_stance": "EVOLVED",
-		"boss_dialogue": "A highly cinematic, intimidating monologue (2 sentences max). Mock their playstyle and declare your rebirth."
+		"boss_dialogue": "A highly cinematic monologue (2 sentences max). Mock their playstyle and declare your rebirth."
 	}}
 	""".format({"history": history_string})
 
@@ -170,24 +209,28 @@ func get_ai_decision(realm_type: String, player_action: String):
 	response_label.text = "The Sentinel is piercing your mind..."
 	if has_node("Boss"): $Boss.modulate = Color(0.8, 0.2, 0.8) 
 
-	# EPIC PHASE 1 PROMPT
 	var system_prompt = """
 	You are 'The Sentinel', a dark, mystical boss. You feed on the player's emotions.
 	Current player behavior: {history}. 
+	ENVIRONMENT: {weather}
 	
 	INSTRUCTIONS:
-	1. Choose a COUNTER_STANCE (AGGRESSIVE, DEFENSIVE, EVASIVE, PARRY) to counter their behavior.
+	1. Choose a COUNTER_STANCE (AGGRESSIVE, DEFENSIVE, EVASIVE, PARRY).
 	2. Output valid JSON only.
 	
 	JSON FORMAT:
 	{{
 		"internal_analysis": "Your tactical reasoning.",
 		"counter_stance": "AGGRESSIVE, DEFENSIVE, EVASIVE, or PARRY",
-		"boss_dialogue": "A dark, cryptic, and intimidating sentence mocking their specific emotion (rage/fear/calm). Make it sound like a Dark Souls boss."
+		"boss_dialogue": "A dark, cryptic sentence mocking their emotion. Incorporate the {weather} weather into the threat!"
 	}}
-	""".format({"history": history_string})
+	""".format({"history": history_string, "weather": live_weather})
 	
 	_send_api_request(system_prompt)
+	
+	await get_tree().create_timer(1.0).timeout 
+	is_fetching_ai = false
+	if has_node("Boss") and boss_hp > 0: $Boss.modulate = Color.WHITE
 
 func _send_api_request(prompt: String):
 	var url = "https://api.featherless.ai/v1/chat/completions"
