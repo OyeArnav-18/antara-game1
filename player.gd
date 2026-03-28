@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 @onready var main_node = $".."
 @onready var action_label = $"../ActionLabel"
+@onready var sprite = $Sprite2D # Grabbing your player image
 
 var speed = 200
 var gravity = 500
@@ -18,6 +19,11 @@ var can_attack = true
 
 func _physics_process(delta):
 	var direction = 0
+
+	# --- NEW ANIMATION HACK ---
+	# Automatically loops the 10 frames of your player idle sheet!
+	if sprite:
+		sprite.frame = (Time.get_ticks_msec() / 100) % 10
 
 	timer += delta
 	if timer > buffer_time:
@@ -44,7 +50,7 @@ func _physics_process(delta):
 		if action_label: action_label.text = "Heavy Attack 🔥"
 		attack_count += 2
 		timer = 0
-		if main_node and main_node.has_method("damage_boss"): main_node.damage_boss(15) # Nerfed base damage
+		if main_node and main_node.has_method("damage_boss"): main_node.damage_boss(15)
 		
 		await get_tree().create_timer(0.8).timeout
 		can_attack = true
@@ -68,7 +74,7 @@ func _physics_process(delta):
 		
 		if last_two == ["J", "J"] and action_label:
 			action_label.text = "Combo Strike 💥🔥"
-			if main_node and main_node.has_method("damage_boss"): main_node.damage_boss(25) # Big burst damage!
+			if main_node and main_node.has_method("damage_boss"): main_node.damage_boss(25)
 			combo_triggered = true
 		elif last_two == ["L", "J"] and action_label:
 			action_label.text = "Dash Strike ⚡💥"
@@ -77,7 +83,6 @@ func _physics_process(delta):
 			action_label.text = "Counter Attack 🛡️⚔️"
 			combo_triggered = true
 			
-		# THE FIX: If you hit a combo, wipe the memory so you can't just press J once more for another combo!
 		if combo_triggered:
 			input_buffer.clear() 
 

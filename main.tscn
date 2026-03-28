@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" uid="uid://cwmomdn6k50p3" path="res://player.gd" id="1_0xm2m"]
 [ext_resource type="Script" uid="uid://dwqi8jic7f03c" path="res://main.gd" id="1_h2yge"]
-[ext_resource type="Texture2D" uid="uid://c2lmsii77uf3j" path="res://icon.svg" id="2_h2yge"]
+[ext_resource type="Texture2D" uid="uid://4i2avmcc0qti" path="res://Idle.png" id="3_lquwl"]
 [ext_resource type="Script" uid="uid://cy40odn2spunb" path="res://boss.gd" id="4_1bvp3"]
+[ext_resource type="Texture2D" uid="uid://dc0wla6juu1tl" path="res://Necromancer_creativekind-Sheet.png" id="4_lquwl"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0xm2m"]
 size = Vector2(26, 26)
@@ -29,8 +30,7 @@ script = ExtResource("1_0xm2m")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=141643797]
 position = Vector2(193, 187)
-scale = Vector2(0.2, 0.2)
-texture = ExtResource("2_h2yge")
+texture = ExtResource("3_lquwl")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1244071555]
 position = Vector2(215, 85)
@@ -55,7 +55,10 @@ text = "..."
 
 [node name="Boss" type="Sprite2D" parent="." unique_id=1336209796]
 position = Vector2(468, 214)
-texture = ExtResource("2_h2yge")
+scale = Vector2(3, 3)
+texture = ExtResource("4_lquwl")
+hframes = 17
+vframes = 7
 script = ExtResource("4_1bvp3")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=459820535]
