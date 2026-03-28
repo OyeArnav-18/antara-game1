@@ -1,13 +1,11 @@
 extends Control
 
 # --- UI REFERENCES ---
-@onready var behavior_label = $Layout/AIPanel/BehaviorLabel
-@onready var response_label = $Layout/AIPanel/ResponseLabel
+@onready var behavior_label = $CanvasLayer/Layout/AIPanel/BehaviorLabel
+@onready var response_label = $CanvasLayer/Layout/AIPanel/ResponseLabel
 @onready var http_request = $HTTPRequest
-
-# Look at your Scene Tree: Layout -> TopBar -> Label 1 & Label 2
-@onready var player_hp_label = $"Layout/TopBar/Label 1"
-@onready var boss_hp_label = $"Layout/TopBar/Label 2"
+@onready var player_hp_label = $"CanvasLayer/Layout/TopBar/Label 1"
+@onready var boss_hp_label = $"CanvasLayer/Layout/TopBar/Label 2"
 
 # --- GAME STATE & STATS ---
 var api_key = "rc_f090ac3c4919ffd991d20691f74edc7e29f97c6429041f51d98e77572e910138" 
@@ -18,185 +16,196 @@ var boss_hp = 300
 var is_phase_two = false
 var current_boss_stance = "BALANCED"
 
+# --- POLISH VARIABLES ---
+var boss_attack_timer = 0.0 
+var game_over = false
+var is_evolving = false
+var is_fetching_ai = false
+
 func _ready():
-	if not http_request:
-		print("ERROR: HTTPRequest node missing!")
-		return
-		
+	if not http_request: return
 	http_request.request_completed.connect(_on_ai_response)
 	self.self_modulate = Color(0.2, 0.2, 0.2)
 	update_hp_ui() 
-	print("ANTARA Brain Initialized. Awaiting player combat data...")
+	print("ANTARA Brain Initialized.")
 
-# --- HP & COMBAT LOGIC ---
+func _input(event):
+	if game_over and (event.is_action_pressed("light_attack") or event.is_action_pressed("ui_accept")):
+		get_tree().reload_current_scene()
+
+func _process(delta):
+	if boss_hp <= 0 or game_over or is_evolving or is_fetching_ai: return 
+	
+	if current_boss_stance == "AGGRESSIVE" or current_boss_stance == "EVOLVED":
+		boss_attack_timer += delta
+		var attack_speed = 0.6 if is_phase_two else 1.2
+		
+		if boss_attack_timer >= attack_speed:
+			boss_attack_timer = 0.0
+			var damage = 45 if is_phase_two else 25
+			damage_player(damage)
+			
+			if has_node("Boss"):
+				var lunge = create_tween()
+				lunge.tween_property($Boss, "scale", Vector2($Boss.scale.x * 1.2, $Boss.scale.y * 0.7), 0.1)
+				lunge.tween_property($Boss, "scale", Vector2($Boss.scale.x * 0.8, $Boss.scale.y * 1.3), 0.05)
+				lunge.tween_property($Boss, "position:x", $Boss.position.x - 80, 0.05)
+				lunge.tween_property($Boss, "scale", $Boss.scale, 0.2)
+				lunge.tween_property($Boss, "position:x", $Boss.position.x + 80, 0.2)
+
 func update_hp_ui():
 	if player_hp_label: player_hp_label.text = "Player HP: " + str(player_hp)
 	if boss_hp_label: boss_hp_label.text = "Boss HP: " + str(boss_hp)
 
-# Called by player.gd when you hit keys
 func damage_boss(amount: int):
-	# 1. THE API SHIELD: If the boss is waiting for the AI response, it takes 90% less damage!
-	if response_label.text == "The Sentinel is analyzing your strategy...":
+	# HARD LOCK: Cannot damage the boss if it's dead or evolving! Fixes the crash!
+	if game_over or is_evolving or boss_hp <= 0: return 
+	
+	if is_fetching_ai:
 		amount = int(amount * 0.1) 
-		# No free hits while the API is loading!
 		
-	# 2. COMBAT MATH
 	if current_boss_stance == "DEFENSIVE":
 		amount = int(amount * 0.2) 
-		response_label.text = "The Sentinel's guard absorbs the blow..."
 	elif current_boss_stance == "EVASIVE":
-		if randi() % 100 < 75: # 75% chance to dodge! (Buffed from 50%)
+		if randi() % 100 < 75: 
 			amount = 0
 			response_label.text = "The Sentinel phases through your strike!"
 	elif current_boss_stance == "PARRY":
 		amount = 0
-		damage_player(30) # Recoil damage buffed to 30!
+		damage_player(30) 
 		response_label.text = "FOOL! The Sentinel parries and strikes back!"
 		
 	boss_hp -= amount
 	
-	# I REMOVED YOUR FREE HEALING HERE! 
-	# Now your mistakes actually matter. You only heal when you trigger a combo in player.gd.
-	
-	# DEATH & EVOLUTION LOGIC
 	if boss_hp <= 0:
 		if not is_phase_two:
 			boss_hp = 0
-			is_phase_two = true
-			update_hp_ui()
 			trigger_evolution()
 		else:
 			boss_hp = 0
-			response_label.text = "THE SENTINEL HAS FALLEN. YOU HAVE TRULY CONQUERED YOURSELF."
+			game_over = true 
+			response_label.text = "THE SENTINEL HAS FALLEN. Press 'J' to Restart."
 			if has_node("Boss"):
 				var death_tween = create_tween()
 				death_tween.tween_property($Boss, "modulate", Color(0, 0, 0, 0), 2.0)
 	else:
-		if has_node("Boss") and boss_hp > 0 and amount > 0:
+		if has_node("Boss") and amount > 0:
 			var hit_tween = create_tween()
 			hit_tween.tween_property($Boss, "modulate", Color(5.0, 5.0, 5.0), 0.1)
 			hit_tween.tween_property($Boss, "modulate", Color.WHITE, 0.1)
 			
 	update_hp_ui()
 
-# Called when the AI decides to attack you!
 func damage_player(amount: int):
-	player_hp -= amount
-	if player_hp < 0: player_hp = 0
+	if game_over or is_evolving: return
 	
-	# THE BOSS FEEDS ON YOU! (Vampirism)
-	boss_hp += amount
-	var max_boss_hp = 600 if is_phase_two else 300
-	if boss_hp > max_boss_hp: boss_hp = max_boss_hp
+	player_hp -= amount
+	if player_hp <= 0: 
+		player_hp = 0
+		game_over = true 
+		behavior_label.text = "SYSTEM FAILURE"
+		response_label.text = "YOU HAVE BEEN CONSUMED. Press 'J' to Restart."
+		if has_node("Boss"): $Boss.modulate = Color(0.5, 0, 0) 
+	else:
+		boss_hp += amount
+		var max_boss_hp = 600 if is_phase_two else 300
+		if boss_hp > max_boss_hp: boss_hp = max_boss_hp
 	
 	update_hp_ui()
-	
-	# SCREEN SHAKE EFFECT
 	var shake = create_tween()
 	shake.tween_property(self, "position:x", 15.0, 0.05)
 	shake.tween_property(self, "position:x", -15.0, 0.05)
 	shake.tween_property(self, "position:x", 0.0, 0.05)
 
-# --- EVOLUTION LOGIC ---
 func trigger_evolution():
+	is_phase_two = true
+	is_evolving = true 
+	is_fetching_ai = true
+	
 	behavior_label.text = "SYSTEM WARNING: THE SENTINEL IS EVOLVING..."
 	response_label.text = "It is analyzing your entire combat history..."
 	
-	# Heal Boss for Phase 2, heal player slightly to be fair
 	boss_hp = 600 
 	player_hp += 50 
 	update_hp_ui()
 	
-	# Massive Visual Shift
-	transition_background(Color(0.2, 0.0, 0.3)) # Deep Void Purple
+	transition_background(Color(0.2, 0.0, 0.3)) 
 	if has_node("Boss"):
 		var evo_tween = create_tween()
 		evo_tween.tween_property($Boss, "scale", $Boss.scale * 2.0, 2.0).set_trans(Tween.TRANS_BOUNCE)
 		evo_tween.tween_property($Boss, "modulate", Color(1.0, 0.5, 0.0), 2.0)
 		
-	# The Evolution AI Call
 	var history_string = ", ".join(player_history)
-	var evo_prompt = """
-	You are 'The Sentinel'. The player just defeated your first form.
-	Instead of dying, you EVOLVE into a god-like Phase 2.
-	You look at the player's ENTIRE combat history to forge a new form that perfectly counters them.
 	
-	PLAYER'S HISTORY: {history}
+	# EPIC PHASE 2 PROMPT
+	var evo_prompt = """
+	You are 'The Sentinel', a god-like boss in a dark fantasy game. The player just "killed" your first form.
+	You are evolving into Phase 2 based on their combat history: {history}.
 	
 	INSTRUCTIONS:
-	1. Analyze what they relied on most (Attacks, Dodges, or Blocks).
-	2. Evolve to render their strategy useless.
-	3. Respond ONLY in valid JSON.
+	1. Act like a terrifying, ancient entity. 
+	2. Output valid JSON only.
 	
 	JSON FORMAT:
 	{{
-		"internal_analysis": "Explain your ultimate evolution strategy based on their past.",
+		"internal_analysis": "Briefly state how you will counter their specific history.",
 		"counter_stance": "EVOLVED",
-		"boss_dialogue": "A terrifying quote announcing your new form and how you learned from their mistakes."
+		"boss_dialogue": "A highly cinematic, intimidating monologue (2 sentences max). Mock their playstyle and declare your rebirth."
 	}}
 	""".format({"history": history_string})
 
-	var url = "https://api.featherless.ai/v1/chat/completions"
-	var headers = ["Content-Type: application/json", "Authorization: Bearer " + api_key]
-	var body = JSON.stringify({
-		"model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-		"messages": [{"role": "user", "content": evo_prompt}],
-		"max_tokens": 150,
-		"response_format": {"type": "json_object"} 
-	})
-	
-	http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	_send_api_request(evo_prompt)
 
-# --- AI COMMUNICATION (Standard Loop) ---
 func get_ai_decision(realm_type: String, player_action: String):
-	if boss_hp <= 0 and is_phase_two: return # Stop tracking if dead
+	if boss_hp <= 0 or game_over or is_evolving: return 
 
 	player_history.append(player_action)
-	if player_history.size() > 4:
-		player_history.pop_front() 
+	if player_history.size() > 4: player_history.pop_front() 
 	
 	var history_string = ", ".join(player_history)
-	var world_weather = "Heavy Rain and Thunder" 
 	
+	is_fetching_ai = true
+	current_boss_stance = "DEFENSIVE" 
 	behavior_label.text = "Tracking Pattern: " + history_string
-	response_label.text = "The Sentinel is analyzing your strategy..."
+	response_label.text = "The Sentinel is piercing your mind..."
+	if has_node("Boss"): $Boss.modulate = Color(0.8, 0.2, 0.8) 
 
+	# EPIC PHASE 1 PROMPT
 	var system_prompt = """
-	You are the combat AI for 'The Sentinel'. You FEED on the player's emotional manifestations to gain the upper hand.
-	- If they are Aggressive (Raudra), you feed on their anger to hit harder.
-	- If they are Defensive (Bhaya), you feed on their fear to break their guard.
-	- If they are Evasive/Focused (Shanta), you feed on their calm to out-predict them.
-	
-	ENVIRONMENT: {weather}
-	CURRENT REALM: {realm}
-	PLAYER'S LAST 4 MOVES: {history}
+	You are 'The Sentinel', a dark, mystical boss. You feed on the player's emotions.
+	Current player behavior: {history}. 
 	
 	INSTRUCTIONS:
-	1. Analyze their pattern. 
-	2. Choose a tactical COUNTER_STANCE (AGGRESSIVE, DEFENSIVE, EVASIVE, or PARRY).
-	3. You MUST respond ONLY in valid JSON format.
+	1. Choose a COUNTER_STANCE (AGGRESSIVE, DEFENSIVE, EVASIVE, PARRY) to counter their behavior.
+	2. Output valid JSON only.
 	
 	JSON FORMAT:
 	{{
-		"internal_analysis": "Explain how you are feeding on their specific emotion.",
+		"internal_analysis": "Your tactical reasoning.",
 		"counter_stance": "AGGRESSIVE, DEFENSIVE, EVASIVE, or PARRY",
-		"boss_dialogue": "A short quote mocking their emotion and stating how you feed on it."
+		"boss_dialogue": "A dark, cryptic, and intimidating sentence mocking their specific emotion (rage/fear/calm). Make it sound like a Dark Souls boss."
 	}}
-	""".format({"weather": world_weather, "realm": realm_type, "history": history_string})
+	""".format({"history": history_string})
 	
+	_send_api_request(system_prompt)
+
+func _send_api_request(prompt: String):
 	var url = "https://api.featherless.ai/v1/chat/completions"
 	var headers = ["Content-Type: application/json", "Authorization: Bearer " + api_key]
 	var body = JSON.stringify({
 		"model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-		"messages": [{"role": "user", "content": system_prompt}],
+		"messages": [{"role": "user", "content": prompt}],
 		"max_tokens": 150,
 		"response_format": {"type": "json_object"} 
 	})
-	
 	http_request.request(url, headers, HTTPClient.METHOD_POST, body)
 
-# --- AI RESPONSE HANDLING ---
-func _on_ai_response(result, response_code, headers, body):
+func _on_ai_response(_result, response_code, _headers, body):
+	is_fetching_ai = false 
+	is_evolving = false    
+	
+	if has_node("Boss") and boss_hp > 0: $Boss.modulate = Color.WHITE 
+	
 	if response_code == 200:
 		var raw_response = body.get_string_from_utf8()
 		var json_parser = JSON.new()
@@ -204,26 +213,21 @@ func _on_ai_response(result, response_code, headers, body):
 			var ai_json = JSON.parse_string(json_parser.get_data()["choices"][0]["message"]["content"])
 			if ai_json != null:
 				var analysis = ai_json.get("internal_analysis", "Analyzing...")
-				var stance = ai_json.get("counter_stance", "BALANCED")
+				var raw_stance = ai_json.get("counter_stance", "BALANCED")
 				var dialogue = ai_json.get("boss_dialogue", "...")
 				
-				# UPDATE THE GAME STATE WITH THE NEW AI STANCE
-				current_boss_stance = stance 
-				
-				behavior_label.text = "AI REASONING: " + analysis + "\nBOSS SHIFTING TO: " + stance
+				current_boss_stance = str(raw_stance).to_upper()
+				behavior_label.text = "AI REASONING: " + analysis + "\nBOSS SHIFTING TO: " + current_boss_stance
 				response_label.text = dialogue
 				
-				# TRIGGER BOSS ANIMATIONS
 				if has_node("Boss") and $Boss.has_method("react_to_stance"):
-					$Boss.react_to_stance(stance)
+					$Boss.react_to_stance(current_boss_stance)
 				
-				# ENVIRONMENT AND DAMAGE LOGIC
-				if stance == "AGGRESSIVE" or stance == "EVOLVED":
-					# If phase two, hit much harder!
+				if current_boss_stance == "AGGRESSIVE" or current_boss_stance == "EVOLVED":
 					var damage = 35 if is_phase_two else 20
 					transition_background(Color(0.5, 0.1, 0.1))
 					damage_player(damage) 
-				elif stance == "DEFENSIVE" or stance == "PARRY":
+				elif current_boss_stance == "DEFENSIVE" or current_boss_stance == "PARRY":
 					transition_background(Color(0.1, 0.1, 0.3))
 				else:
 					transition_background(Color(0.6, 0.6, 0.6))
@@ -233,27 +237,3 @@ func _on_ai_response(result, response_code, headers, body):
 func transition_background(color: Color):
 	var tween = create_tween()
 	tween.tween_property(self, "self_modulate", color, 1.5).set_trans(Tween.TRANS_SINE)
-
-# --- ACTIVE BOSS ATTACK LOOP ---
-var boss_attack_timer = 0.0
-
-func _process(delta):
-	if boss_hp <= 0: return 
-	
-	if current_boss_stance == "AGGRESSIVE" or current_boss_stance == "EVOLVED":
-		boss_attack_timer += delta
-		
-		# Buffed Attack Speed: Attacks every 1.2s in Phase 1, and every 0.6s in Phase 2!
-		var attack_speed = 0.6 if is_phase_two else 1.2
-		
-		if boss_attack_timer >= attack_speed:
-			boss_attack_timer = 0.0
-			
-			# Buffed Damage: Hits for 25 in Phase 1, and 45 in Phase 2!
-			var damage = 45 if is_phase_two else 25
-			damage_player(damage)
-			
-			if has_node("Boss"):
-				var lunge = create_tween()
-				lunge.tween_property($Boss, "position:x", $Boss.position.x - 50, 0.1)
-				lunge.tween_property($Boss, "position:x", $Boss.position.x + 50, 0.2)
